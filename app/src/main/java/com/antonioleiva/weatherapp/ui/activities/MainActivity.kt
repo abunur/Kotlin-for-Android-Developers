@@ -18,35 +18,35 @@ import org.jetbrains.anko.startActivity
 
 class MainActivity : AppCompatActivity(), ToolbarManager {
 
-    private val zipCode: Long by DelegatesExt.preference(this, SettingsActivity.ZIP_CODE,
-            SettingsActivity.DEFAULT_ZIP)
-    override val toolbar by lazy { find<Toolbar>(R.id.toolbar) }
+  private val zipCode: Long by DelegatesExt.preference(this, SettingsActivity.ZIP_CODE,
+      SettingsActivity.DEFAULT_ZIP)
+  override val toolbar by lazy { find<Toolbar>(R.id.toolbar) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        initToolbar()
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
+    initToolbar()
 
-        forecastList.layoutManager = LinearLayoutManager(this)
-        attachToScroll(forecastList)
+    forecastList.layoutManager = LinearLayoutManager(this)
+    attachToScroll(forecastList)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    loadForecast()
+  }
+
+  private fun loadForecast() = async(UI) {
+    val result = bg { RequestForecastCommand(zipCode).execute() }
+    updateUI(result.await())
+  }
+
+  private fun updateUI(weekForecast: ForecastList) {
+    val adapter = ForecastListAdapter(weekForecast) {
+      startActivity<DetailActivity>(DetailActivity.ID to it.id,
+          DetailActivity.CITY_NAME to weekForecast.city)
     }
-
-    override fun onResume() {
-        super.onResume()
-        loadForecast()
-    }
-
-    private fun loadForecast() = async(UI) {
-        val result = bg { RequestForecastCommand(zipCode).execute() }
-        updateUI(result.await())
-    }
-
-    private fun updateUI(weekForecast: ForecastList) {
-        val adapter = ForecastListAdapter(weekForecast) {
-            startActivity<DetailActivity>(DetailActivity.ID to it.id,
-                    DetailActivity.CITY_NAME to weekForecast.city)
-        }
-        forecastList.adapter = adapter
-        toolbarTitle = "${weekForecast.city} (${weekForecast.country})"
-    }
+    forecastList.adapter = adapter
+    toolbarTitle = "${weekForecast.city} (${weekForecast.country})"
+  }
 }
